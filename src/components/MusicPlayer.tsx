@@ -37,16 +37,12 @@ const MusicPlayer = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    audio.load();
     if (isPlaying) {
       audio.pause();
-      setIsPlaying(false);
     } else {
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => setIsPlaying(true));
-      }
+      audio.play().catch((err) => console.error(err));
     }
+    setIsPlaying(!isPlaying);
   };
 
   // پخش آهنگ بعدی هنگام تغییر ایندکس
@@ -93,8 +89,9 @@ const MusicPlayer = () => {
           <h2 className="text-2xl font-bold mb-2">{currentSong.title}</h2>
           <Image
             height={0}
+            priority
             width={150}
-            className="rounded-full"
+            className="rounded-full object-cover"
             style={{ height: '220px', width: 'auto' }}
             src={currentSong.image}
             alt="cover"
