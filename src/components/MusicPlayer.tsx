@@ -12,7 +12,6 @@ const MusicPlayer = () => {
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
-  const [error, setError] = useState<string | null>(null);
 
   const currentSong = songs[currentSongIndex];
 
@@ -23,16 +22,13 @@ const MusicPlayer = () => {
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleLoadedMetadata = () => setDuration(audio.duration);
-    const handleError = () => setError('خطا در بارگذاری فایل صوتی');
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('error', handleError);
     };
   }, []);
 
@@ -41,17 +37,14 @@ const MusicPlayer = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    audio.load();
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
     } else {
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => setIsPlaying(true))
-          .catch((err) => setError(`خطا در پخش آهنگ: ${err.message}`));
-      }
+      audio
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((err) => console.error('Auto-play error:', err));
     }
   };
 
@@ -60,12 +53,13 @@ const MusicPlayer = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    audio.load();
+    // اول آهنگ رو از اول شروع کنیم
+    audio.currentTime = 0;
+
     if (isPlaying) {
-      audio.play().catch((err) => setError(`خطا در پخش خودکار: ${err.message}`));
+      audio.play().catch((err) => console.error('Auto-play error:', err));
     }
   }, [currentSongIndex]);
-
   // کنترل آهنگ قبلی و بعدی
   const playNext = () => setCurrentSongIndex((prev) => (prev + 1) % songs.length);
   const playPrev = () => setCurrentSongIndex((prev) => (prev - 1 + songs.length) % songs.length);
@@ -90,10 +84,9 @@ const MusicPlayer = () => {
       <div className="flex items-center justify-center mt-4 overflow-y-hidden">
         <DarkMode />
       </div>
-      <div className="flex flex-col items-center justify-center min-h-screen p-6">
-        <audio ref={audioRef} controlsList="nodownload">
-          <source src={currentSong.audio} type="audio/mpeg" />
-          مرورگر شما از پخش صوت پشتیبانی نمی‌کند.
+      <div className="flex flex-col items-center justify-center min-h-screen  p-6">
+        <audio ref={audioRef} onEnded={playNext}>
+          <source src={currentSong.audio} />
         </audio>
 
         <div className="text-center flex items-center justify-center flex-col relative w-full h-full">
@@ -149,7 +142,6 @@ const MusicPlayer = () => {
             <span className="text-sm font-normal">{formatTime(duration)}</span>
           </div>
         </div>
-        {error && <p className="text-red-500 mt-4">{error}</p>}
       </div>
     </>
   );
