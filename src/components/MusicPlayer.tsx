@@ -37,14 +37,15 @@ const MusicPlayer = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    audio.load();
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
     } else {
-      audio
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch((err) => console.error('Auto-play error:', err));
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => setIsPlaying(true));
+      }
     }
   };
 
@@ -53,13 +54,12 @@ const MusicPlayer = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    // اول آهنگ رو از اول شروع کنیم
-    audio.currentTime = 0;
-
+    audio.load();
     if (isPlaying) {
       audio.play().catch((err) => console.error('Auto-play error:', err));
     }
   }, [currentSongIndex]);
+
   // کنترل آهنگ قبلی و بعدی
   const playNext = () => setCurrentSongIndex((prev) => (prev + 1) % songs.length);
   const playPrev = () => setCurrentSongIndex((prev) => (prev - 1 + songs.length) % songs.length);
