@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { songs } from '@/songs/song';
 import Image from 'next/image';
 import { Next, Pause, Play, Previous } from 'iconsax-reactjs';
-import Link from 'next/link';
+import DarkMode from '@/utils/DarkMode';
 
 const MusicPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -12,6 +12,7 @@ const MusicPlayer = () => {
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const currentSong = songs[currentSongIndex];
 
@@ -22,13 +23,16 @@ const MusicPlayer = () => {
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleLoadedMetadata = () => setDuration(audio.duration);
+    const handleError = () => setError('خطا در بارگذاری فایل صوتی');
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('error', handleError);
     };
   }, []);
 
@@ -44,7 +48,9 @@ const MusicPlayer = () => {
     } else {
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.then(() => setIsPlaying(true));
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch((err) => setError(`خطا در پخش آهنگ: ${err.message}`));
       }
     }
   };
@@ -56,7 +62,7 @@ const MusicPlayer = () => {
 
     audio.load();
     if (isPlaying) {
-      audio.play().catch((err) => console.error('Auto-play error:', err));
+      audio.play().catch((err) => setError(`خطا در پخش خودکار: ${err.message}`));
     }
   }, [currentSongIndex]);
 
@@ -80,65 +86,72 @@ const MusicPlayer = () => {
     isNaN(time) ? '00:00' : `${Math.floor(time / 60)}:${('0' + Math.floor(time % 60)).slice(-2)}`;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen  p-6">
-      <audio ref={audioRef} onEnded={playNext}>
-        <source src={currentSong.audio} type="audio/mpeg" />
-      </audio>
-
-      <div className="text-center flex items-center justify-center flex-col relative w-full h-full">
-        <h2 className="text-2xl font-bold mb-2">{currentSong.title}</h2>
-        <Image
-          height={0}
-          width={150}
-          className="rounded-4xl"
-          style={{ height: '250px', width: 'auto' }}
-          src={currentSong.image}
-          alt="cover"
-        />
+    <>
+      <div className="flex items-center justify-center mt-4 overflow-y-hidden">
+        <DarkMode />
       </div>
+      <div className="flex flex-col items-center justify-center min-h-screen p-6">
+        <audio ref={audioRef} controlsList="nodownload">
+          <source src={currentSong.audio} type="audio/mpeg" />
+          مرورگر شما از پخش صوت پشتیبانی نمی‌کند.
+        </audio>
 
-      <div className="flex items-center gap-6 my-4">
-        <button
-          onClick={playPrev}
-          className="p-3 rounded-full bg-gray-700 hover:bg-gray-600 transition"
-          aria-label="Previous"
-        >
-          <Previous size="24" color="#2ccce4" />
-        </button>
-
-        <button
-          onClick={togglePlay}
-          className="p-4 rounded-full bg-blue-600 hover:bg-blue-500 transition"
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-        >
-          {isPlaying ? <Pause size="24" color="#2ccce4" /> : <Play size="24" color="#2ccce4" />}
-        </button>
-
-        <button
-          onClick={playNext}
-          className="p-3 rounded-full bg-gray-700 hover:bg-gray-600 transition"
-          aria-label="Next"
-        >
-          <Next size="24" color="#2ccce4" />
-        </button>
-      </div>
-
-      <div className="w-full max-w-xl px-4">
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-mono">{formatTime(currentTime)}</span>
-          <div
-            className="relative flex-1 h-3 bg-gray-500 rounded-lg cursor-pointer"
-            onClick={handleProgressClick}
-          >
-            <div
-              className="absolute top-0 left-0 h-full bg-blue-400 rounded-lg"
-              style={{ width: `${(currentTime / duration) * 100}%` }}
-            ></div>
-          </div>
-          <span className="text-sm font-normal">{formatTime(duration)}</span>
+        <div className="text-center flex items-center justify-center flex-col relative w-full h-full">
+          <h2 className="text-2xl font-bold mb-2">{currentSong.title}</h2>
+          <Image
+            height={0}
+            width={150}
+            className="rounded-full"
+            style={{ height: '220px', width: 'auto' }}
+            src={currentSong.image}
+            alt="cover"
+          />
         </div>
+
+        <div className="flex items-center gap-6 my-4">
+          <button
+            onClick={playPrev}
+            className="p-3 rounded-full bg-gray-700 hover:bg-gray-600 transition"
+            aria-label="Previous"
+          >
+            <Previous size="24" color="#2ccce4" />
+          </button>
+
+          <button
+            onClick={togglePlay}
+            className="p-4 rounded-full bg-blue-600 hover:bg-blue-500 transition"
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? <Pause size="24" color="#2ccce4" /> : <Play size="24" color="#2ccce4" />}
+          </button>
+
+          <button
+            onClick={playNext}
+            className="p-3 rounded-full bg-gray-700 hover:bg-gray-600 transition"
+            aria-label="Next"
+          >
+            <Next size="24" color="#2ccce4" />
+          </button>
+        </div>
+
+        <div className="w-full max-w-xl px-4">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-mono">{formatTime(currentTime)}</span>
+            <div
+              className="relative flex-1 h-3 bg-gray-800 rounded-lg cursor-pointer"
+              onClick={handleProgressClick}
+            >
+              <div
+                className="absolute top-0 left-0 h-full bg-blue-400 rounded-lg"
+                style={{ width: `${(currentTime / duration) * 100}%` }}
+              ></div>
+            </div>
+            <span className="text-sm font-normal">{formatTime(duration)}</span>
+          </div>
+        </div>
+        {error && <p className="text-red-500 mt-4">{error}</p>}
       </div>
-    </div>
+    </>
   );
 };
 

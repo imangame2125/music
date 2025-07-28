@@ -3,3 +3,8 @@
   width: 100%;
   height: auto;
 }
+
+body.dark {
+  background-color: black;
+  color: white;
+}
